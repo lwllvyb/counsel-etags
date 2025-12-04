@@ -199,6 +199,11 @@ A CLI to create tags file:
   :group 'counsel-etags
   :type 'boolean)
 
+(defcustom counsel-etags-use-git-grep-p nil
+  "Use git grep as grep program if current project is under git control."
+  :group 'counsel-etags
+  :type 'boolean)
+
 (defcustom counsel-etags-use-ripgrep-force nil
   "Force use ripgrep as grep program.
 If rg is not in $PATH, then it need be defined in `counsel-etags-grep-program'."
@@ -1684,6 +1689,9 @@ If SYMBOL-AT-POINT is nil, don't read symbol at point."
   "Use KEYWORD and USE-CACHE to build CLI.
 Extended regex is used, like (pattern1|pattern2)."
   (cond
+   ((and counsel-etags-use-git-grep-p (executable-find "git"))
+    (format "git --no-pager grep -n --no-color -I -e \"%s\"" keyword))
+
    ((counsel-etags-has-quick-grep-p)
     ;; "--hidden" force ripgrep to search hidden files/directories, that's default
     ;; behavior of grep
@@ -1731,7 +1739,9 @@ This command uses Ivy which supports regexp negation with \"!\".
 For example, \"define key ! ivy quit\" first selects everything
 matching \"define.*key\", then removes everything matching \"ivy\",
 and finally removes everything matching \"quit\". What remains is the
-final result set of the negation regexp."
+final result set of the negation regexp.
+
+If `counsel-etags-use-git-grep-p' is not nil, git grep is grep program."
   (interactive)
 
   (unless hint
@@ -1850,11 +1860,8 @@ The `counsel-etags-browse-url-function' is used to open the url."
 ;; {{ occur setup
 (defun counsel-etags-tag-occur-api (items)
   "Create occur buffer for ITEMS."
-  (message "b major-mode=%s" major-mode)
   (unless (eq major-mode 'ivy-occur-grep-mode)
     (ivy-occur-grep-mode))
-  (message "major-mode=%s" major-mode)
-  (message "(buffer-string)=%s" (buffer-string))
   ;; we use regex in elisp, don't unquote regex
   (let ((cands (ivy--filter ivy-text items)))
     (when buffer-read-only
